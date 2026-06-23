@@ -12,7 +12,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { cn } from "@/lib/utils";
 import type { EventoJogo, Time, CobrancaPenalti } from "@/lib/simulador";
 import { statsTime } from "@/lib/simulador";
-import { RARIDADE_CSS } from "@/lib/selecoes";
+import { RARIDADE_CSS, RARIDADE_TEXT_CLASS, RARIDADE_BORDER_CLASS, RARIDADE_LABEL } from "@/lib/selecoes";
 import { CampoAoVivo } from "@/components/CampoAoVivo";
 import { ChaveamentoVisual } from "@/components/ChaveamentoVisual";
 import { toast } from "sonner";
@@ -39,7 +39,7 @@ function Torneio() {
   const [penaltisAoVivo, setPenaltisAoVivo] = useState<{ casa: Time; fora: Time; cobrancas: CobrancaPenalti[]; indiceAtual: number } | null>(null);
   // Card pós-partida mostrando os 11 dos dois times lado a lado. Permanece visível
   // até o jogador apertar "continuar" (ou auto-avança em modo automático).
-  const [resumoPosJogo, setResumoPosJogo] = useState<{ meu: Time; adv: Time; placar: string; faseLabel: string; minhaVitoria: boolean } | null>(null);
+  const [resumoPosJogo, setResumoPosJogo] = useState<{ meu: Time; adv: Time; placar: string; faseLabel: string; minhaVitoria: boolean; empate: boolean } | null>(null);
   // Guarda o último adversário enfrentado para mostrar no card de eliminado/campeão.
   const [ultimoAdversario, setUltimoAdversario] = useState<Time | null>(null);
   // Segundos restantes até a próxima partida começar sozinha no modo automático
@@ -177,6 +177,9 @@ function Torneio() {
           const foraTime = confrontoAntes?.fora ?? adv ?? meu;
           if (!casaTime || !foraTime) return;
           setTimeout(() => {
+            // CRÍTICO: limpa partidaAtiva ANTES de mostrar pênaltis. Sem isso,
+            // o render fica preso na tela de partida ao vivo e a disputa nunca aparece.
+            setPartidaAtiva(null);
             setPenaltisAoVivo({ casa: casaTime!, fora: foraTime!, cobrancas: ultimoJogo.penaltis!.cobrancas, indiceAtual: 0 });
           }, 1200);
           return;
@@ -188,12 +191,14 @@ function Torneio() {
           const meuFimDeJogo = useCampanha.getState().meuTime();
           if (meuFimDeJogo && adv) {
             const faseLabel = (faseDaPartida ?? "").toUpperCase();
+            const empateReal = res.golsCasa === res.golsFora;
             setResumoPosJogo({
               meu: meuFimDeJogo,
               adv,
               placar: `${res.golsCasa} x ${res.golsFora}`,
               faseLabel,
-              minhaVitoria: ultimoJogo?.minhaVitoria ?? false,
+              minhaVitoria: !empateReal && (ultimoJogo?.minhaVitoria ?? false),
+              empate: empateReal,
             });
             // Persiste o adversário para exibi-lo no card final de eliminado/campeão.
             setUltimoAdversario(adv);
@@ -268,13 +273,19 @@ function Torneio() {
           <div className="text-[10px] uppercase tracking-widest text-muted-foreground text-center mb-2">{(faseAtiva ?? s.fase).toUpperCase()}</div>
           <div className="flex items-center justify-around">
             <div className="text-center flex-1">
-              <div className="text-2xl mb-1">{meu.bandeira}</div>
+              <div className="text-2xl mb-1">🏆</div>
               <div className="font-display text-xs uppercase truncate">{meu.nome}</div>
+              <div className="mt-1 flex items-center justify-center gap-1 text-[9px] uppercase tracking-widest text-muted-foreground">
+                <span className="size-2 rounded-full bg-blue-500" /> Azul
+              </div>
             </div>
             <div className="font-display text-5xl font-black tabular-nums">{placar[0]}–{placar[1]}</div>
             <div className="text-center flex-1">
               <div className="text-2xl mb-1">{adversarioAtivo?.bandeira ?? "🤖"}</div>
               <div className="font-display text-xs uppercase truncate">{adversarioAtivo?.nome ?? "Adversário"}</div>
+              <div className="mt-1 flex items-center justify-center gap-1 text-[9px] uppercase tracking-widest text-muted-foreground">
+                <span className="size-2 rounded-full bg-red-500" /> Vermelho
+              </div>
             </div>
           </div>
           <div className="mt-3 text-center text-primary font-mono text-sm">{partidaAtiva.minuto}'</div>
@@ -399,13 +410,19 @@ function Torneio() {
           <div className="text-[10px] uppercase tracking-widest text-destructive text-center mb-2">Disputa de Pênaltis</div>
           <div className="flex items-center justify-around">
             <div className="text-center flex-1">
-              <div className="text-2xl mb-1">{casa.bandeira}</div>
+              <div className="text-2xl mb-1">{casa.isCPU ? casa.bandeira : "🏆"}</div>
               <div className="font-display text-xs uppercase truncate">{casa.nome}</div>
+              <div className="mt-1 flex items-center justify-center gap-1 text-[9px] uppercase tracking-widest text-muted-foreground">
+                <span className="size-2 rounded-full bg-blue-500" /> Azul
+              </div>
             </div>
             <div className="font-display text-5xl font-black tabular-nums">{placarCasa}–{placarFora}</div>
             <div className="text-center flex-1">
-              <div className="text-2xl mb-1">{fora.bandeira}</div>
+              <div className="text-2xl mb-1">{fora.isCPU ? fora.bandeira : "🏆"}</div>
               <div className="font-display text-xs uppercase truncate">{fora.nome}</div>
+              <div className="mt-1 flex items-center justify-center gap-1 text-[9px] uppercase tracking-widest text-muted-foreground">
+                <span className="size-2 rounded-full bg-red-500" /> Vermelho
+              </div>
             </div>
           </div>
           {cobrancaAtual && (
@@ -436,24 +453,33 @@ function Torneio() {
 
   // --- RESUMO PÓS-PARTIDA (cards dos dois times lado a lado) ---
   if (resumoPosJogo) {
-    const { meu: meuRes, adv: advRes, placar, faseLabel, minhaVitoria } = resumoPosJogo;
+    const { meu: meuRes, adv: advRes, placar, faseLabel, minhaVitoria, empate } = resumoPosJogo;
+    const corBorda = empate ? "border-yellow-500/50 bg-yellow-500/5" : minhaVitoria ? "border-primary/60 bg-primary/5" : "border-destructive/40 bg-destructive/5";
+    const labelResultado = empate ? "Empate" : minhaVitoria ? "Vitória" : "Derrota";
+    const corLabel = empate ? "text-yellow-500" : minhaVitoria ? "text-primary" : "text-destructive";
     return (
       <div className="mx-auto max-w-md px-4 py-6 space-y-4 animate-enter pb-10">
-        <div className={cn("rounded-2xl border-2 p-4 text-center", minhaVitoria ? "border-primary/60 bg-primary/5" : "border-destructive/40 bg-destructive/5")}>
+        <div className={cn("rounded-2xl border-2 p-4 text-center", corBorda)}>
           <div className="text-[10px] uppercase tracking-widest text-muted-foreground mb-2">{faseLabel} · Fim de jogo</div>
           <div className="flex items-center justify-around">
             <div className="text-center flex-1">
-              <div className="text-3xl mb-1">{meuRes.bandeira}</div>
+              <div className="text-3xl mb-1">🏆</div>
               <div className="font-display text-xs uppercase truncate">{meuRes.nome}</div>
+              <div className="mt-1 flex items-center justify-center gap-1 text-[9px] uppercase tracking-widest text-muted-foreground">
+                <span className="size-2 rounded-full bg-blue-500" /> Azul
+              </div>
             </div>
             <div className="font-display text-4xl font-black tabular-nums">{placar}</div>
             <div className="text-center flex-1">
               <div className="text-3xl mb-1">{advRes.bandeira}</div>
               <div className="font-display text-xs uppercase truncate">{advRes.nome}</div>
+              <div className="mt-1 flex items-center justify-center gap-1 text-[9px] uppercase tracking-widest text-muted-foreground">
+                <span className="size-2 rounded-full bg-red-500" /> Vermelho
+              </div>
             </div>
           </div>
-          <p className={cn("mt-2 font-display uppercase text-sm font-black tracking-widest", minhaVitoria ? "text-primary" : "text-destructive")}>
-            {minhaVitoria ? "Vitória" : "Derrota"}
+          <p className={cn("mt-2 font-display uppercase text-sm font-black tracking-widest", corLabel)}>
+            {labelResultado}
           </p>
         </div>
 
@@ -509,15 +535,15 @@ function Torneio() {
               {s.escalacao.map(j => (
                 <div key={j.slotId} className={cn(
                   "flex items-center gap-3 rounded-xl border-l-4 bg-card p-3",
-                  `border-rarity-${RARIDADE_CSS[j.raridade]}`,
+                  RARIDADE_BORDER_CLASS[j.raridade],
                 )}>
-                  <span className={cn("font-display text-2xl font-black w-8 text-center", `rarity-${RARIDADE_CSS[j.raridade]}`)}>{j.numero}</span>
+                  <span className={cn("font-display text-2xl font-black w-8 text-center", RARIDADE_TEXT_CLASS[j.raridade])}>{j.numero}</span>
                   <div className="flex-1 min-w-0">
                     <div className="font-bold truncate">{j.nome} {j.improvisado && <span className="text-[10px] text-destructive">(improv.)</span>}</div>
                     <div className="flex items-center gap-1.5 text-[10px] uppercase tracking-widest text-muted-foreground">
                       <span>{j.posicao}</span>
                       <span>·</span>
-                      <span className={cn("font-bold", `rarity-${RARIDADE_CSS[j.raridade]}`)}>{j.raridade}</span>
+                      <span className={cn("font-bold", RARIDADE_TEXT_CLASS[j.raridade])}>{RARIDADE_LABEL[j.raridade]}</span>
                     </div>
                   </div>
                   <div className="font-display text-2xl font-black">{j.forcaEfetiva}</div>
@@ -693,7 +719,7 @@ function HistoricoRodada({ h, meu, compact }: { h: EstadoCampanha["historicoJogo
     : [];
 
   return (
-    <div className={cn("rounded-lg border bg-card overflow-hidden", h.minhaVitoria ? "border-primary/40" : "border-destructive/30")}>
+    <div className={cn("rounded-lg border bg-card overflow-hidden", h.empate ? "border-yellow-500/40" : h.minhaVitoria ? "border-primary/40" : "border-destructive/30")}>
       <button
         type="button"
         onClick={() => setAberto(v => !v)}
@@ -794,22 +820,22 @@ function TimeEscalacao({ time, titulo }: { time: Time; titulo: string }) {
     <div className="rounded-xl border border-border bg-card p-2">
       <div className="text-[9px] uppercase tracking-widest text-muted-foreground text-center mb-1">{titulo}</div>
       <div className="flex items-center gap-1 mb-2 justify-center">
-        <span className="text-base">{time.bandeira}</span>
+        <span className="text-base">{time.isCPU ? time.bandeira : "🏆"}</span>
         <span className="font-display text-[10px] uppercase font-bold truncate">{time.nome}</span>
       </div>
       <ul className="space-y-1">
         {time.escalacao.map(j => (
           <li key={j.slotId} className={cn(
             "flex items-center gap-1.5 rounded border-l-2 bg-secondary/40 px-1.5 py-1",
-            `border-rarity-${RARIDADE_CSS[j.raridade]}`,
+            RARIDADE_BORDER_CLASS[j.raridade],
           )}>
-            <span className={cn("font-display text-[10px] font-black w-4 text-center tabular-nums", `rarity-${RARIDADE_CSS[j.raridade]}`)}>{j.numero}</span>
+            <span className={cn("font-display text-[10px] font-black w-4 text-center tabular-nums", RARIDADE_TEXT_CLASS[j.raridade])}>{j.numero}</span>
             <div className="flex-1 min-w-0">
               <div className="text-[10px] font-bold leading-tight truncate">{j.nome}</div>
               <div className="flex items-center gap-1 text-[8px] uppercase tracking-widest">
                 <span className="text-muted-foreground">{j.posicao}</span>
                 <span className="text-muted-foreground">·</span>
-                <span className={cn("font-bold", `rarity-${RARIDADE_CSS[j.raridade]}`)}>{j.raridade}</span>
+                <span className={cn("font-bold", RARIDADE_TEXT_CLASS[j.raridade])}>{RARIDADE_LABEL[j.raridade]}</span>
               </div>
             </div>
             <span className="font-display text-xs font-black tabular-nums">{j.forcaEfetiva}</span>

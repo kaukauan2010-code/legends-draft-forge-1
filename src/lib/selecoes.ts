@@ -13,6 +13,32 @@ export const RARIDADE_CSS: Record<Raridade, string> = {
   epico: "epic",
   lendario: "legendary",
 };
+// Classes Tailwind ESTÁTICAS (template-literal dinâmico não é detectado pelo
+// scanner do Tailwind v4 — por isso as cores de raridade nunca eram aplicadas).
+export const RARIDADE_TEXT_CLASS: Record<Raridade, string> = {
+  comum: "rarity-common",
+  raro: "rarity-rare",
+  epico: "rarity-epic",
+  lendario: "rarity-legendary",
+};
+export const RARIDADE_BORDER_CLASS: Record<Raridade, string> = {
+  comum: "border-rarity-common",
+  raro: "border-rarity-rare",
+  epico: "border-rarity-epic",
+  lendario: "border-rarity-legendary",
+};
+export const RARIDADE_BG_CLASS: Record<Raridade, string> = {
+  comum: "bg-common",
+  raro: "bg-rare",
+  epico: "bg-epic",
+  lendario: "bg-legendary",
+};
+export const RARIDADE_LABEL: Record<Raridade, string> = {
+  comum: "Comum",
+  raro: "Raro",
+  epico: "Épico",
+  lendario: "Lendário",
+};
 export interface Jogador { nome: string; posicao: Posicao; forca: number; raridade: Raridade; numero: number; }
 export interface Selecao { id: string; nome: string; ano: number; bandeira: string; jogadores: Jogador[]; }
 
