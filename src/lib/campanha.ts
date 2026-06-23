@@ -466,6 +466,7 @@ export const useCampanha = create<EstadoCampanha & CampanhaActions>()(
             texto: textoPlacar,
             resultado: res,
             minhaVitoria,
+            empate: false, // mata-mata sempre tem vencedor (pênaltis decidem)
             penaltis: pens,
           }];
 
@@ -514,7 +515,11 @@ export const useCampanha = create<EstadoCampanha & CampanhaActions>()(
           for (let i = 0; i < vencedores.length; i += 2) {
             novosConfrontos.push(novoConfronto(`${proxFase}-${i / 2 + 1}`, vencedores[i]!, vencedores[i + 1] ?? null));
           }
-          const meuProxConfronto = novosConfrontos.find(c => !c.casa?.isCPU || !c.fora?.isCPU) ?? null;
+          let meuProxConfronto = novosConfrontos.find(c => !c.casa?.isCPU || !c.fora?.isCPU) ?? null;
+          // Normaliza: meu time sempre como "casa" no próximo confronto.
+          if (meuProxConfronto && meuProxConfronto.casa?.isCPU && meuProxConfronto.fora && !meuProxConfronto.fora.isCPU) {
+            meuProxConfronto = { ...meuProxConfronto, casa: meuProxConfronto.fora, fora: meuProxConfronto.casa };
+          }
 
           set({
             fase: proxFase,
