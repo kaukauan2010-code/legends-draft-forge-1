@@ -70,7 +70,7 @@ export interface EstadoCampanha {
   meuGrupoIndex: number;          // índice do grupo onde está o jogador
   chave: ChaveMata;
   proximoConfronto: ConfrontoMata | null; // confronto mata-mata atual do jogador
-  historicoJogos: { fase: string; texto: string; resultado: ResultadoPartida; minhaVitoria: boolean; penaltis?: ResultadoPenaltis }[];
+  historicoJogos: { fase: string; texto: string; resultado: ResultadoPartida; minhaVitoria: boolean; empate?: boolean; penaltis?: ResultadoPenaltis }[];
   trocasRestantes: number;
   // controle de exibição de telas intermediárias (grupos completos / chaveamento)
   mostrarApresentacaoGrupos: boolean;
