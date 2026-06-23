@@ -719,7 +719,7 @@ function HistoricoRodada({ h, meu, compact }: { h: EstadoCampanha["historicoJogo
     : [];
 
   return (
-    <div className={cn("rounded-lg border bg-card overflow-hidden", h.minhaVitoria ? "border-primary/40" : "border-destructive/30")}>
+    <div className={cn("rounded-lg border bg-card overflow-hidden", h.empate ? "border-yellow-500/40" : h.minhaVitoria ? "border-primary/40" : "border-destructive/30")}>
       <button
         type="button"
         onClick={() => setAberto(v => !v)}
