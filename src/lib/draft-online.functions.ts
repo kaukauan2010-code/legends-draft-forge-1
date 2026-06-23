@@ -207,7 +207,7 @@ const ExcluirInput = z.object({ salaId: z.string().uuid(), slotId: z.string() })
 /** Cria (ou retorna, se já existir) o registro de draft do jogador autenticado na sala. */
 export const iniciarDraftOnline = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .validator((input: unknown) => IniciarInput.parse(input))
+  .inputValidator((input: unknown) => IniciarInput.parse(input))
   .handler(async ({ data, context }) => {
     const admin = await getAdmin();
     const userId = (context as { userId: string }).userId;
@@ -247,7 +247,7 @@ export const iniciarDraftOnline = createServerFn({ method: "POST" })
 /** Sorteia a próxima seleção (ou re-sorteia, se `isReroll`) — sempre decidido no servidor. */
 export const sortearSelecaoOnline = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .validator((input: unknown) => SortearInput.parse(input))
+  .inputValidator((input: unknown) => SortearInput.parse(input))
   .handler(async ({ data, context }) => {
     const admin = await getAdmin();
     const userId = (context as { userId: string }).userId;
@@ -259,7 +259,7 @@ export const sortearSelecaoOnline = createServerFn({ method: "POST" })
 /** Confirma a escolha de um jogador da seleção sorteada para um slot da formação. */
 export const escolherJogadorOnline = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .validator((input: unknown) => EscolherInput.parse(input))
+  .inputValidator((input: unknown) => EscolherInput.parse(input))
   .handler(async ({ data, context }) => {
     const admin = await getAdmin();
     const userId = (context as { userId: string }).userId;
@@ -271,7 +271,7 @@ export const escolherJogadorOnline = createServerFn({ method: "POST" })
 /** Remove um jogador já escalado (libera o slot e o nome) — consome 1 troca. */
 export const excluirJogadorOnline = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .validator((input: unknown) => ExcluirInput.parse(input))
+  .inputValidator((input: unknown) => ExcluirInput.parse(input))
   .handler(async ({ data, context }) => {
     const admin = await getAdmin();
     const userId = (context as { userId: string }).userId;
@@ -303,7 +303,7 @@ export const excluirJogadorOnline = createServerFn({ method: "POST" })
 /** Cronômetro zerou: escolhe automaticamente (mesma regra do `forcarFimDraft` solo). */
 export const forcarFimDraftOnline = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .validator((input: unknown) => SalaIdInput.parse(input))
+  .inputValidator((input: unknown) => SalaIdInput.parse(input))
   .handler(async ({ data, context }) => {
     const admin = await getAdmin();
     const userId = (context as { userId: string }).userId;

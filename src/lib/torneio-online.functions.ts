@@ -207,7 +207,7 @@ const SimularInput = z.object({
  */
 export const iniciarTorneioOnline = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .validator((input: unknown) => SalaIdInput.parse(input))
+  .inputValidator((input: unknown) => SalaIdInput.parse(input))
   .handler(async ({ data, context }) => {
     const admin = await getAdmin();
     const userId = (context as { userId: string }).userId;
@@ -321,7 +321,7 @@ export const iniciarTorneioOnline = createServerFn({ method: "POST" })
  */
 export const simularPartidaOnline = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .validator((input: unknown) => SimularInput.parse(input))
+  .inputValidator((input: unknown) => SimularInput.parse(input))
   .handler(async ({ data, context }) => {
     const admin = await getAdmin();
     const userId = (context as { userId: string }).userId;
@@ -469,7 +469,7 @@ export const simularPartidaOnline = createServerFn({ method: "POST" })
  */
 export const avancarFaseOnline = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .validator((input: unknown) => SalaIdInput.parse(input))
+  .inputValidator((input: unknown) => SalaIdInput.parse(input))
   .handler(async ({ data, context }) => {
     const admin = await getAdmin();
     const userId = (context as { userId: string }).userId;
@@ -583,7 +583,7 @@ export const avancarFaseOnline = createServerFn({ method: "POST" })
  */
 export const gerarRodadaGrupos = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .validator((input: unknown) => SalaIdInput.parse(input))
+  .inputValidator((input: unknown) => SalaIdInput.parse(input))
   .handler(async ({ data, context }) => {
     const admin = await getAdmin();
     const userId = (context as { userId: string }).userId;
