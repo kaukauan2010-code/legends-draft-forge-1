@@ -399,7 +399,13 @@ export const useCampanha = create<EstadoCampanha & CampanhaActions>()(
               ...par(4, 5), // E x F
               ...par(6, 7), // G x H
             ];
-            const meuConfronto = oitavasFinal.find(c => !c.casa?.isCPU || !c.fora?.isCPU) ?? null;
+            let meuConfronto = oitavasFinal.find(c => !c.casa?.isCPU || !c.fora?.isCPU) ?? null;
+            // Normaliza: se o jogador é "fora", inverte para casa — isso garante
+            // que a tela ao vivo (que sempre mostra meu time à esquerda usando
+            // golsCasa/golsFora) fique consistente com o resultado real.
+            if (meuConfronto && meuConfronto.casa?.isCPU && meuConfronto.fora && !meuConfronto.fora.isCPU) {
+              meuConfronto = { ...meuConfronto, casa: meuConfronto.fora, fora: meuConfronto.casa };
+            }
             set({
               grupos: gruposAtualizados,
               fase: "oitavas",
