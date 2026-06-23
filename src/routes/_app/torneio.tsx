@@ -535,15 +535,15 @@ function Torneio() {
               {s.escalacao.map(j => (
                 <div key={j.slotId} className={cn(
                   "flex items-center gap-3 rounded-xl border-l-4 bg-card p-3",
-                  `border-rarity-${RARIDADE_CSS[j.raridade]}`,
+                  RARIDADE_BORDER_CLASS[j.raridade],
                 )}>
-                  <span className={cn("font-display text-2xl font-black w-8 text-center", `rarity-${RARIDADE_CSS[j.raridade]}`)}>{j.numero}</span>
+                  <span className={cn("font-display text-2xl font-black w-8 text-center", RARIDADE_TEXT_CLASS[j.raridade])}>{j.numero}</span>
                   <div className="flex-1 min-w-0">
                     <div className="font-bold truncate">{j.nome} {j.improvisado && <span className="text-[10px] text-destructive">(improv.)</span>}</div>
                     <div className="flex items-center gap-1.5 text-[10px] uppercase tracking-widest text-muted-foreground">
                       <span>{j.posicao}</span>
                       <span>·</span>
-                      <span className={cn("font-bold", `rarity-${RARIDADE_CSS[j.raridade]}`)}>{j.raridade}</span>
+                      <span className={cn("font-bold", RARIDADE_TEXT_CLASS[j.raridade])}>{RARIDADE_LABEL[j.raridade]}</span>
                     </div>
                   </div>
                   <div className="font-display text-2xl font-black">{j.forcaEfetiva}</div>
