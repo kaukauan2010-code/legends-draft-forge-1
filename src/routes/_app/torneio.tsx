@@ -5,6 +5,7 @@ import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useCampanha } from "@/lib/campanha";
 import type { EstadoCampanha } from "@/lib/campanha";
 import { useConquistas } from "@/lib/useConquistas";
+import { salvarCampanhaLocal } from "@/lib/historicoLocal";
 import { Button } from "@/components/ui/button";
 import { Play, FastForward, Zap, Trophy, Skull, ChevronDown, Target, RotateCcw, Users, Network } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
@@ -101,18 +102,21 @@ function Torneio() {
       if (!user || !s.config) return;
       const st = useCampanha.getState();
       if (!st.partidaId) return;
-      const { error } = await supabase.from("partidas").upsert({
+      const payload = {
         id: st.partidaId,
         user_id: user.id,
-        modo: s.config.modo,
-        formacao: s.config.formacaoId,
-        estrategia: s.config.estrategia,
+        modo: st.config?.modo ?? s.config.modo,
+        formacao: st.config?.formacaoId ?? s.config.formacaoId,
+        estrategia: st.config?.estrategia ?? s.config.estrategia,
         fase_alcancada: st.fase,
         pontuacao: 0,
         campeao: st.fase === "campeao",
         elenco: st.escalacao as any,
         log: st.historicoJogos as any,
-      }, { onConflict: "id" });
+        created_at: new Date().toISOString(),
+      };
+      salvarCampanhaLocal(user.id, payload);
+      const { error } = await supabase.from("partidas").upsert(payload, { onConflict: "id" });
       if (error) throw error;
     },
     onSuccess: () => {
