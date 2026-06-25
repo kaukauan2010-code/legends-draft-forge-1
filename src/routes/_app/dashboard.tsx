@@ -79,16 +79,23 @@ function Dashboard() {
   const todas = mesclarCampanhas(campanhas ?? [], campanhasLocais);
   const campeas = todas.filter(p => p.campeao);
   const todasPartidas = partidasDeCampanhas(todas, 21);
+  const partidasParaStats = partidasDeCampanhas(todas, 9999);
+  const statsHistorico = {
+    total: partidasParaStats.length,
+    vitorias: partidasParaStats.filter(item => item.rodada.minhaVitoria && !item.rodada.empate).length,
+    empates: partidasParaStats.filter(item => item.rodada.empate).length,
+    derrotas: partidasParaStats.filter(item => !item.rodada.minhaVitoria && !item.rodada.empate).length,
+  };
   const vitoriosas = todasPartidas.filter(item => item.rodada.minhaVitoria && !item.rodada.empate);
 
   const totalConquistasVisivel = Math.max(conquistas_db ?? 0, totalDesbloqueadas);
 
   const stats = {
-    total: stats_db?.partidas_jogadas ?? 0,
-    vitorias: stats_db?.vitorias ?? 0,
-    empates: stats_db?.empates ?? 0,
-    derrotas: stats_db?.derrotas ?? 0,
-    titulos: stats_db?.titulos ?? campeas.length,
+    total: Math.max(stats_db?.partidas_jogadas ?? 0, statsHistorico.total),
+    vitorias: Math.max(stats_db?.vitorias ?? 0, statsHistorico.vitorias),
+    empates: Math.max(stats_db?.empates ?? 0, statsHistorico.empates),
+    derrotas: Math.max(stats_db?.derrotas ?? 0, statsHistorico.derrotas),
+    titulos: Math.max(stats_db?.titulos ?? 0, campeas.length),
   };
 
   const listaDoPainel =
