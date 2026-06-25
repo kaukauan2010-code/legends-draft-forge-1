@@ -1,4 +1,4 @@
-import { createFileRoute, useNavigate } from "@tanstack/react-router";
+import { createFileRoute, Outlet, useNavigate, useRouterState } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
@@ -9,8 +9,16 @@ import { Copy, Check, X, Crown, Bot, Plus, Play } from "lucide-react";
 import { ChatPlaceholder } from "@/components/ChatPlaceholder";
 
 export const Route = createFileRoute("/_app/online/$codigo")({
-  component: SalaLobby,
+  component: SalaRoute,
 });
+
+function SalaRoute() {
+  const { codigo } = Route.useParams();
+  const isLobby = useRouterState({
+    select: (state) => state.location.pathname.replace(/\/$/, "") === `/online/${codigo}`,
+  });
+  return isLobby ? <SalaLobby /> : <Outlet />;
+}
 
 interface Sala {
   id: string; codigo: string; mestre_id: string;
