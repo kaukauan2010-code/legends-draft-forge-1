@@ -175,11 +175,23 @@ function DraftOnline() {
       }
     };
 
+    const abandonar = async () => {
+      if (!sala || !user) return;
+      if (!confirm("Abandonar a sala? Você perderá o progresso do draft.")) return;
+      await supabase.from("sala_jogadores").delete().eq("sala_id", sala.id).eq("user_id", user.id);
+      navigate({ to: "/online" });
+    };
+
     return (
       <div className="mx-auto max-w-md px-4 py-6 space-y-6 animate-enter">
-        <header>
-          <h1 className="font-display text-3xl uppercase italic tracking-tight">Seu time online</h1>
-          <p className="text-sm text-muted-foreground">Escolha formação e estratégia antes de entrar no draft simultâneo.</p>
+        <header className="flex items-start justify-between gap-2">
+          <div>
+            <h1 className="font-display text-3xl uppercase italic tracking-tight">Seu time online</h1>
+            <p className="text-sm text-muted-foreground">Escolha formação e estratégia antes de entrar no draft simultâneo.</p>
+          </div>
+          <Button onClick={abandonar} variant="ghost" size="sm" className="text-destructive shrink-0 h-8 px-2 text-[10px] uppercase tracking-widest font-bold">
+            <X className="size-3 mr-1" /> Sair
+          </Button>
         </header>
 
         <section className="space-y-3">
