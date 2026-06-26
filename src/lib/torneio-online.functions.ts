@@ -270,7 +270,6 @@ export const iniciarTorneioOnline = createServerFn({ method: "POST" })
       }[]).map(d => [d.user_id, d]),
     );
 
-    // Atualiza sala_jogadores com elenco e nome do time de cada humano
     for (const sj of slots) {
       if (sj.is_cpu || !sj.user_id) continue;
       const draft = draftPorUser.get(sj.user_id);
@@ -284,7 +283,6 @@ export const iniciarTorneioOnline = createServerFn({ method: "POST" })
         .eq("id", sj.id);
     }
 
-    // Re-lê para pegar nomes atualizados
     const { data: slotsAtualizados } = await admin
       .from("sala_jogadores")
       .select("id, user_id, nome, is_cpu, slot")
@@ -293,27 +291,85 @@ export const iniciarTorneioOnline = createServerFn({ method: "POST" })
     const todosSlots: { id: string; user_id: string | null; nome: string; is_cpu: boolean }[] =
       slotsAtualizados ?? [];
 
-    // 4. Garante exatamente 32 slots (preenche com CPUs se necessário)
-    // Normalmente já vem completo do lobby — mas blindamos para robustez.
-    const total = todosSlots.length;
+    const maxJogadores = sala.max_jogadores;
+    const competicao = sala.competicao as "copa" | "oitavas" | "final";
+
+    // Pad com CPU se faltar (defesa - o lobby já deveria ter preenchido)
     const extras: { id: string; user_id: null; nome: string; is_cpu: boolean }[] = [];
-    if (total < 32) {
-      const cpuFiller = montarVariosTimesCPU(FORMACOES["4-3-3"], 32 - total, -15);
-      for (let i = 0; i < cpuFiller.length; i++) {
-        extras.push({ id: `cpu-filler-${i}`, user_id: null, nome: cpuFiller[i]!.nome, is_cpu: true });
+    if (todosSlots.length < maxJogadores) {
+      const filler = montarVariosTimesCPU(FORMACOES["4-3-3"], maxJogadores - todosSlots.length, -15);
+      for (let i = 0; i < filler.length; i++) {
+        extras.push({ id: `cpu-filler-${i}`, user_id: null, nome: filler[i]!.nome, is_cpu: true });
       }
     }
+    const todos = [...todosSlots, ...extras].slice(0, maxJogadores);
 
-    // 5. Gera grupos
-    const grupos = gerarGrupos([...todosSlots, ...extras].slice(0, 32));
+    const slotsInfo = new Map<string, { is_cpu: boolean }>(
+      todos.map(s => [s.id, { is_cpu: s.is_cpu }]),
+    );
 
-    // 6. Classificação inicial (zerada)
+    // ─── ROTA A: competicao = 'final' (1x1) ───
+    if (competicao === "final") {
+      if (todos.length < 2) throw new Error("Precisa de 2 jogadores no mínimo.");
+      const [s1, s2] = todos;
+      const confronto: ConfrontoOnline = {
+        id: "final-1",
+        fase: "final",
+        slot1_id: s1!.id,
+        slot2_id: s2!.id,
+        vencedor_slot_id: null,
+        partida_online_id: null,
+      };
+      const chaveamento = aplicarMetaConfrontos([confronto], slotsInfo);
+      const { error: errT } = await admin.from("torneio_online").insert({
+        sala_id: data.salaId,
+        fase_atual: "final",
+        rodada_grupos_atual: 1,
+        grupos: [],
+        chaveamento,
+        classificacao_grupos: {},
+      });
+      if (errT) throw new Error(errT.message);
+      await admin.from("salas").update({ status: "torneio" }).eq("id", data.salaId);
+      return { ok: true };
+    }
+
+    // ─── ROTA B: competicao = 'oitavas' (16 jogadores, direto pro mata-mata) ───
+    if (competicao === "oitavas") {
+      const embaralhados = [...todos].sort(() => Math.random() - 0.5);
+      const confrontosBruto: ConfrontoOnline[] = [];
+      for (let i = 0; i < embaralhados.length; i += 2) {
+        confrontosBruto.push({
+          id: `oitavas-${i / 2 + 1}`,
+          fase: "oitavas",
+          slot1_id: embaralhados[i]!.id,
+          slot2_id: embaralhados[i + 1]!.id,
+          vencedor_slot_id: null,
+          partida_online_id: null,
+        });
+      }
+      const chaveamento = aplicarMetaConfrontos(confrontosBruto, slotsInfo);
+      const { error: errT } = await admin.from("torneio_online").insert({
+        sala_id: data.salaId,
+        fase_atual: "oitavas",
+        rodada_grupos_atual: 1,
+        grupos: [],
+        chaveamento,
+        classificacao_grupos: {},
+      });
+      if (errT) throw new Error(errT.message);
+      await admin.from("salas").update({ status: "torneio" }).eq("id", data.salaId);
+      return { ok: true };
+    }
+
+    // ─── ROTA C: competicao = 'copa' (32, com fase de grupos) ───
+    const grupos = gerarGrupos(todos);
+
     const classif: Record<string, ClassifLinha> = {};
     for (const g of grupos) {
       classif[g.slot_id] = { pontos: 0, gols_pro: 0, gols_contra: 0, jogos: 0 };
     }
 
-    // 7. Insere torneio_online
     const { error: errTorneio } = await admin.from("torneio_online").insert({
       sala_id: data.salaId,
       fase_atual: "grupos",
@@ -324,7 +380,6 @@ export const iniciarTorneioOnline = createServerFn({ method: "POST" })
     });
     if (errTorneio) throw new Error(errTorneio.message);
 
-    // 8. Atualiza grupos nos sala_jogadores (coluna `grupo`)
     for (const g of grupos) {
       await admin
         .from("sala_jogadores")
@@ -332,7 +387,6 @@ export const iniciarTorneioOnline = createServerFn({ method: "POST" })
         .eq("id", g.slot_id);
     }
 
-    // 9. Muda status da sala para 'torneio'
     await admin.from("salas").update({ status: "torneio" }).eq("id", data.salaId);
 
     return { ok: true };
