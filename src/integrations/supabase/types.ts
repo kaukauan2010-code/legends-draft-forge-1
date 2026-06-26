@@ -62,6 +62,7 @@ export type Database = {
       partida_online: {
         Row: {
           created_at: string
+          encerrada: boolean
           fase: string
           id: string
           jogador1_id: string
@@ -76,6 +77,7 @@ export type Database = {
         }
         Insert: {
           created_at?: string
+          encerrada?: boolean
           fase?: string
           id?: string
           jogador1_id: string
@@ -90,6 +92,7 @@ export type Database = {
         }
         Update: {
           created_at?: string
+          encerrada?: boolean
           fase?: string
           id?: string
           jogador1_id?: string
@@ -248,6 +251,7 @@ export type Database = {
       }
       sala_jogadores: {
         Row: {
+          bandeira: string | null
           created_at: string
           elenco_online: Json | null
           eliminado_em: string | null
@@ -266,6 +270,7 @@ export type Database = {
           user_id: string | null
         }
         Insert: {
+          bandeira?: string | null
           created_at?: string
           elenco_online?: Json | null
           eliminado_em?: string | null
@@ -284,6 +289,7 @@ export type Database = {
           user_id?: string | null
         }
         Update: {
+          bandeira?: string | null
           created_at?: string
           elenco_online?: Json | null
           eliminado_em?: string | null

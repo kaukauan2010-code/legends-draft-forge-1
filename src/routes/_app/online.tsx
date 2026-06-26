@@ -1,5 +1,5 @@
 import { createFileRoute, useNavigate, Link, Outlet, useRouterState } from "@tanstack/react-router";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -12,7 +12,17 @@ import { cn } from "@/lib/utils";
 export const Route = createFileRoute("/_app/online")({
   head: () => ({ meta: [{ title: "Online — World Cup Draft" }] }),
   component: OnlineRoute,
+  validateSearch: (s: Record<string, unknown>) => ({ codigo: typeof s.codigo === "string" ? s.codigo : undefined }),
 });
+
+// Bandeiras aleatórias para humanos
+const FLAGS_LOBBY = [
+  "🇧🇷","🇦🇷","🇫🇷","🇩🇪","🇪🇸","🇵🇹","🇮🇹","🇳🇱","🇧🇪","🇭🇷",
+  "🇺🇾","🇨🇴","🇨🇱","🇲🇽","🇺🇸","🇨🇦","🇯🇵","🇰🇷","🇦🇺","🇲🇦",
+  "🇸🇳","🇨🇲","🇬🇭","🇳🇬","🇪🇬","🇸🇦","🇮🇷","🇶🇦","🇨🇭","🇩🇰",
+  "🇸🇪","🇳🇴","🇵🇱","🇷🇸","🇹🇷","🇬🇷",
+];
+const bandeiraRand = () => FLAGS_LOBBY[Math.floor(Math.random() * FLAGS_LOBBY.length)]!;
 
 type Competicao = "oitavas" | "final" | "copa";
 const COMPETICOES: { id: Competicao; label: string; vagas: number; icone: typeof Trophy; desc: string }[] = [
@@ -40,12 +50,20 @@ function OnlineRoute() {
 function Online() {
   const { user, isAnonymous } = useAuth();
   const navigate = useNavigate();
-  const [tab, setTab] = useState<"criar" | "entrar">("criar");
+  const search = Route.useSearch();
+  const [tab, setTab] = useState<"criar" | "entrar">(search.codigo ? "entrar" : "criar");
   const [comp, setComp] = useState<Competicao>("copa");
   const [modo, setModo] = useState<Modo>("classico");
-  const [codigoEntrar, setCodigoEntrar] = useState("");
+  const [codigoEntrar, setCodigoEntrar] = useState(search.codigo ?? "");
   const [nomeVisitante, setNomeVisitante] = useState("");
   const [busy, setBusy] = useState(false);
+
+  // Se vier ?codigo= e o usuário estiver logado e não for anônimo, pula direto pro lobby
+  useEffect(() => {
+    if (search.codigo && user && !isAnonymous) {
+      navigate({ to: "/online/$codigo", params: { codigo: search.codigo.toUpperCase() } });
+    }
+  }, [search.codigo, user, isAnonymous, navigate]);
 
   const meuNome =
     (isAnonymous ? nomeVisitante.trim() : user?.user_metadata?.full_name)
@@ -66,7 +84,7 @@ function Online() {
         }).select("id, codigo").single();
         if (!error && data) {
           const { error: jErr } = await supabase.from("sala_jogadores").insert({
-            sala_id: data.id, user_id: user.id, nome: meuNome, slot: 1,
+            sala_id: data.id, user_id: user.id, nome: meuNome, slot: 1, bandeira: bandeiraRand(),
           });
           if (jErr) {
             console.error("[online] erro ao entrar como mestre", jErr);
@@ -114,7 +132,7 @@ function Online() {
     let proxSlot = 1;
     while (usados.has(proxSlot)) proxSlot++;
     const { error } = await supabase.from("sala_jogadores").insert({
-      sala_id: sala.id, user_id: user.id, nome: meuNome, slot: proxSlot,
+      sala_id: sala.id, user_id: user.id, nome: meuNome, slot: proxSlot, bandeira: bandeiraRand(),
     });
     setBusy(false);
     if (error) { toast.error(error.message); return; }

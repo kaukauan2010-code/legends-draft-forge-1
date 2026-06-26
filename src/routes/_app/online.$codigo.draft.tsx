@@ -158,6 +158,13 @@ function DraftOnline() {
 
   const limite = sala.modo === "almanaque" ? 1 : 3;
 
+  const abandonar = async () => {
+    if (!sala || !user) return;
+    if (!confirm("Abandonar a sala? Você perderá o progresso do draft.")) return;
+    await supabase.from("sala_jogadores").delete().eq("sala_id", sala.id).eq("user_id", user.id);
+    navigate({ to: "/online" });
+  };
+
   // ====== ETAPA 0: ainda não escolheu formação/estratégia ======
   if (!meuDraft) {
     const comecar = async () => {
@@ -177,9 +184,14 @@ function DraftOnline() {
 
     return (
       <div className="mx-auto max-w-md px-4 py-6 space-y-6 animate-enter">
-        <header>
-          <h1 className="font-display text-3xl uppercase italic tracking-tight">Seu time online</h1>
-          <p className="text-sm text-muted-foreground">Escolha formação e estratégia antes de entrar no draft simultâneo.</p>
+        <header className="flex items-start justify-between gap-2">
+          <div>
+            <h1 className="font-display text-3xl uppercase italic tracking-tight">Seu time online</h1>
+            <p className="text-sm text-muted-foreground">Escolha formação e estratégia antes de entrar no draft simultâneo.</p>
+          </div>
+          <Button onClick={abandonar} variant="ghost" size="sm" className="text-destructive shrink-0 h-8 px-2 text-[10px] uppercase tracking-widest font-bold">
+            <X className="size-3 mr-1" /> Sair
+          </Button>
         </header>
 
         <section className="space-y-3">
@@ -300,7 +312,11 @@ function DraftOnline() {
       }
     };
     return (
-      <div className="mx-auto max-w-md px-4 py-6 space-y-5 pb-10 animate-enter">
+      <div className="mx-auto max-w-md px-4 py-6 space-y-5 pb-10 animate-enter relative">
+        <Button onClick={abandonar} variant="ghost" size="sm"
+          className="absolute right-3 top-3 text-destructive h-7 px-2 text-[10px] uppercase tracking-widest font-bold z-10">
+          <X className="size-3 mr-1" /> Sair
+        </Button>
         <header className="text-center space-y-2">
           <Hourglass className="mx-auto size-10 text-primary animate-pulse" />
           <h1 className="font-display text-2xl uppercase italic tracking-tight">
@@ -338,7 +354,11 @@ function DraftOnline() {
 
   // ====== LOOP PRINCIPAL DO DRAFT ======
   return (
-    <div className="mx-auto max-w-5xl px-4 py-4 space-y-4">
+    <div className="mx-auto max-w-5xl px-4 py-4 space-y-4 relative">
+      <Button onClick={abandonar} variant="ghost" size="sm"
+        className="absolute right-3 top-3 text-destructive h-7 px-2 text-[10px] uppercase tracking-widest font-bold z-20">
+        <X className="size-3 mr-1" /> Sair
+      </Button>
       <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-destructive/30 bg-destructive/5 p-3">
         <div className="min-w-0">
           <div className="text-[10px] uppercase tracking-widest text-destructive">Draft Online · {sala.codigo}</div>
